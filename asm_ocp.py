@@ -4,7 +4,7 @@ import numpy as np
 from utils import plot_asm
 
 def main():
-    Tf = 0.0001
+    Tf = 0.1
     ocp = AcadosOcp()
 
     # set model
@@ -14,7 +14,7 @@ def main():
     nx = model.x.size()[0]
     nu = model.u.size()[0]
     N = 400
-
+    print(nx, nu)
     # set number of shooting intervals
     ocp.dims.N = N
 
@@ -23,14 +23,19 @@ def main():
 
     # set cost
     # ocp.cost.cost_type_e = 'EXTERNAL'
-    # ocp.model.cost_expr_ext_cost_e = model.cost_expr_ext_cost_e
+    # ocp.model.cost_expr_ext_cost_e = model.x[-3]**2
     # set constraints
-    # ocp.constraints.lh_e = np.array([0,0])
-    # ocp.constraints.uh_e = np.array([0,0])
-    ocp.constraints.lbu = np.array([1])
-    ocp.constraints.ubu = np.array([2])
+    # ocp.constraints.lh_e = np.array([-0.5,-0.5])
+    # ocp.constraints.uh_e = np.array([0.5,0.5])
+    # ocp.constraints.lh_e = np.array([0.0])
+    # ocp.constraints.uh_e = np.array([0.0])
+    ocp.constraints.lbu = np.array([0.05])
+    ocp.constraints.ubu = np.array([0.2])
     ocp.constraints.idxbu = np.array([0])
     ocp.constraints.x0 = model.x0
+    ocp.constraints.lbx_e = np.array([-0.00000, ])
+    ocp.constraints.ubx_e = np.array([0.00000, ])
+    ocp.constraints.idxbx_e = np.array([4,])
 
     # set options
     ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
@@ -43,7 +48,8 @@ def main():
     ocp.solver_options.globalization = 'MERIT_BACKTRACKING' # turns on globalization
 
     ocp_solver = AcadosOcpSolver(ocp, json_file = 'acados_ocp.json')
-
+    for i, tau in enumerate(np.linspace(0, 1, N)):
+            ocp_solver.set(i, 'u', 0.1)
     simX = np.zeros((N+1, nx))
     simU = np.zeros((N, nu))
 
@@ -52,11 +58,12 @@ def main():
 
     if status != 0:
         raise Exception(f'acados returned status {status}.')
-
+    print(ocp_solver.get_cost())
     # get solution
     for i in range(N):
-        simX[i,:] = ocp_solver.get(i, "x")
+        simX[i,:] = np.log(np.abs(ocp_solver.get(i, "x")))
         simU[i,:] = ocp_solver.get(i, "u")
+        
     simX[N,:] = ocp_solver.get(N, "x")
     lbu = ocp.constraints.lbu
     ubu = ocp.constraints.ubu

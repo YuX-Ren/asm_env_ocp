@@ -43,18 +43,35 @@ def get_equilibrium(temp):
 def export_asm_model() -> AcadosModel:
 
     model_name = 'asm'
+    
+    # set x0 and x_goal
+    x0 = get_equilibrium(1)
+    x_goal = get_equilibrium(2)
+    motion_mode = calculate_motion_mode(2)
+    
+    b = x0 - x_goal
+    A = motion_mode[1]
+    c = solve(np.dot(A.T, A), np.dot(A.T, b))
+
     # set up states & controls
     x1 = SX.sym('x1', 4)
-    x = vertcat(x1)
+    modes = SX.sym('modes', 3)
+    x = vertcat(x1, modes)
 
     T = SX.sym('T')
 
     # xdot
     x1_dot = SX.sym('x1_dot', 4)
-    xdot = vertcat(x1_dot)
+    modes_dot = SX.sym('modes_dot', 3)
+    xdot = vertcat(x1_dot, modes_dot)
 
     # dynamics
-    f_expl = vertcat(get_rate_matrix(T)@x1)
+    V = get_rate_matrix(T)@x1
+
+    A = motion_mode[1]
+    V_mode = cs.solve(cs.mtimes(A.T, A), cs.mtimes(A.T, V))
+
+    f_expl = vertcat(V, V_mode)
     f_impl = xdot - f_expl
     
     model = AcadosModel()
@@ -65,19 +82,14 @@ def export_asm_model() -> AcadosModel:
     model.xdot = xdot
     model.u = T
     model.name = model_name
-    
-    # set x0 and x_goal
-    x0 = get_equilibrium(1)
-    model.x0 = x0
-    x_goal = get_equilibrium(2)
+    # cat the x0 and c
+    model.x0 = np.concatenate((x0, c.squeeze()))
     model.x_goal = x_goal
-    # motion_mode = calculate_motion_mode(2)
-    # b = model.x - x_goal
-    # A = motion_mode[1]
-    # c = cs.solve(cs.mtimes(A.T, A), cs.mtimes(A.T, b))
+    
 
     # model.con_h_expr_e = vertcat(c[0], c[1])
-    # model.cost_expr_ext_cost_e = c[2]**2
+    # model.con_h_expr_e = vertcat(c[0])
+    # model.cost_expr_ext_cost_e = c[0]**2
 
     # store meta information
     model.u_labels = ['$T$']

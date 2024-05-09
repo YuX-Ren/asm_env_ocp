@@ -42,7 +42,6 @@ def plot_asm(t, lbu, ubu, U, X_true, latexify=False, plt_show=True, time_label='
         X_true: arrray with shape (N_sim, nx)
         latexify: latex style plots
     """
-
     if latexify:
         latexify_plot()
 
@@ -71,25 +70,11 @@ def plot_asm(t, lbu, ubu, U, X_true, latexify=False, plt_show=True, time_label='
     axes[-1].set_xlabel(time_label)
     axes[-1].grid()
 
-    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, hspace=0.4)
+    plt.subplots_adjust(left=None, bottom=None, right=None, top=None, hspace=0.8)
 
     fig.align_ylabels()
 
     if plt_show:
         plt.show()
         plt.savefig('asm.png')
-import casadi as cs
 
-def calculate_motion_mode(self):
-    # Decompose the rate_matrix
-    eigenvalues, eigenvectors = cs.linalg.eig(self.target_rate_matrix)
-    self.rate_eigenvec = eigenvectors
-    mask = cs.fabs(eigenvalues) > 1e-5
-    order = cs.sort_indices(cs.fabs(eigenvalues[mask]))
-
-    # Use A.T * A * x = A.T * b to solve for x
-    A = eigenvectors
-    b = self.state - self.target_state
-    x = cs.solve(cs.mtimes(A.T, A)[1:, 1:], cs.mtimes(A.T, b)[1:])
-
-    return x, order
