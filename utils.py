@@ -33,7 +33,7 @@ import numpy as np
 from acados_template import latexify_plot
 
 
-def plot_asm(t, lbu, ubu, U, X_true, latexify=False, plt_show=True, time_label='$t$', x_labels=None, u_labels=None):
+def plot_asm(t, lbu, ubu, U, X_true, modes, latexify=False, plt_show=True, time_label='$t$', x_labels=None, u_labels=None):
     """
     Params:
         t: time values of the discretization
@@ -46,7 +46,8 @@ def plot_asm(t, lbu, ubu, U, X_true, latexify=False, plt_show=True, time_label='
         latexify_plot()
 
     nx = X_true.shape[1]
-    fig, axes = plt.subplots(nx+1, 1, sharex=True)
+    na = modes.shape[1]
+    fig, axes = plt.subplots(nx+na+1, 1, sharex=True)
 
     for i in range(nx):
         axes[i].plot(t, X_true[:, i])
@@ -55,6 +56,11 @@ def plot_asm(t, lbu, ubu, U, X_true, latexify=False, plt_show=True, time_label='
             axes[i].set_ylabel(x_labels[i])
         else:
             axes[i].set_ylabel(f'$x_{i}$')
+
+    for i in range(na):
+        axes[i+nx].plot(t, modes[:, i])
+        axes[i+nx].grid()
+        axes[i+nx].set_ylabel(f'$a_{i}$')
 
     axes[-1].step(t, np.append([U[0]], U))
 
@@ -65,7 +71,7 @@ def plot_asm(t, lbu, ubu, U, X_true, latexify=False, plt_show=True, time_label='
 
     axes[-1].hlines(ubu, t[0], t[-1], linestyles='dashed', alpha=0.7)
     axes[-1].hlines(lbu, t[0], t[-1], linestyles='dashed', alpha=0.7)
-    axes[-1].set_ylim([1.2*lbu, 1.2*ubu])
+    axes[-1].set_ylim([lbu, 1.2*ubu])
     axes[-1].set_xlim(t[0], t[-1])
     axes[-1].set_xlabel(time_label)
     axes[-1].grid()
